@@ -120,6 +120,7 @@ WSS.on('connection', (connection, req) => {
         client.send(JSON.stringify({
           text,
           sender: connection.userId,
+          recipient,
           id: messageDoc._id,
         }))
       })
