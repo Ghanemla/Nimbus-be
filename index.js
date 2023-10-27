@@ -8,6 +8,7 @@ const cookieParser = require('cookie-parser');
 const User = require('./Models/User');
 const Message = require('./Models/Message');
 const ws = require('ws');
+const fs = require('fs');
 
 dotenv.config();
 
@@ -15,6 +16,7 @@ mongoose.connect(process.env.DB);
 const jwtSecret = process.env.JWT_SECRET;
 const bcryptSalt = bcrypt.genSaltSync(10);
 const app = express();
+app.use('/uploads', express.static(__dirname + '/uploads'));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -167,23 +169,37 @@ WSS.on('connection', (connection, req) => {
   connection.on('message', async (message,) => {
     const messageData = JSON.parse(message.toString())
 
-    const { recipient, text } = messageData
+    const { recipient, text, file } = messageData
+    let fileName = null
+    if (file) {
+      console.log('size', file.data.length);
+      const parts = file.name.split('.')
+      const ext = parts[parts.length - 1]
+      fileName = Date.now() + '.' + ext;
+      const filePath = __dirname + '/uploads/' + fileName
+      const bufferData = Buffer.from(file.data.split(',')[1], 'base64')
+      fs.writeFile(filePath, bufferData, () => {
+        console.log('file saved:' + filePath)
+      })
+    }
 
-    if (recipient && text) {
+    if (recipient && (text || file)) {
       const messageDoc = await Message.create({
         sender: connection.userId,
         recipient,
-        text
+        text,
+        file: file ? fileName : null,
       });
-
-      [...WSS.clients].filter(c => c.userId === recipient).forEach(client => {
-        client.send(JSON.stringify({
+      console.log('created message');
+      [...WSS.clients]
+        .filter(c => c.userId === recipient)
+        .forEach(c => c.send(JSON.stringify({
           text,
           sender: connection.userId,
           recipient,
-          id: messageDoc._id,
-        }))
-      })
+          file: file ? fileName : null,
+          _id: messageDoc._id,
+        })));
     }
   });
 
