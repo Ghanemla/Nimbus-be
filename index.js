@@ -89,6 +89,10 @@ app.post('/login', async (req, res) => {
   }
 })
 
+app.post('/logout', (req, res) => {
+  res.cookie('token', '').json('ok')
+})
+
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -128,9 +132,10 @@ WSS.on('connection', (connection, req) => {
     connection.ping()
     connection.deathTimer = setTimeout(() => {
       connection.isAlive = false
+      clearInterval(connection.timer)
       connection.terminate()
       notifyAboutOnlinePeople()
-      // console.log('dead')
+      console.log('dead')
     }, 1000)
   }, 5000);
 
