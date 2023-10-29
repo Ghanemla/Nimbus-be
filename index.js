@@ -23,6 +23,7 @@ app.use(cookieParser());
 app.use(cors({
   credentials: true,
   origin: process.env.CLIENT_URL
+  exposedHeaders: ['Access-Control-Allow-Origin']
 }));
 
 async function getUserDataFromRequest(req) {
